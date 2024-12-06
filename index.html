@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPF Calculator Year Wise</title>
+<meta name="description" content="Use our PPF Calculator Year Wise to calculate yearly investment, interest, and maturity value for your PPF investment over time.">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: #343a40;
+        }
+
+        .result h3 {
+            color: #198754;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .result p {
+            font-size: 1.1rem;
+            margin: 5px 0;
+        }
+
+        .chart-legend {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .chart-legend span {
+            display: inline-block;
+            margin-right: 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 50%;
+        }
+        .container {
+          margin-top: 25px;
+          margin-bottom: 25px;
+        }
+
+        .blue {
+            background-color:#4D87FF;
+        }
+
+        .gray {
+            background-color:#9AB9FF;
+        }
+
+        .result {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .table th, .table td {
+            text-align: center;
+        }
+        .ppfgr{
+          margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">PPF Calculator Year Wise</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <form id="ppf-form">
+                    <div class="mb-3">
+                        <label for="annual-investment" class="form-label">Yearly Investment (₹)</label>
+                        <input type="number" id="annual-investment" class="form-control" value="10000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="time-period" class="form-label">Time Period (years)</label>
+                        <input type="number" id="time-period" class="form-control" value="20" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="interest-rate" class="form-label">Interest Rate (%)</label>
+                        <input type="number" id="interest-rate" class="form-control" value="7.1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Calculate</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <div class="result">
+                    <h3>Calculation Results</h3>
+                    <p id="investment-amount"></p>
+                    <p id="total-interest"></p>
+                    <p id="maturity-value"></p>
+                </div>
+                
+                <!-- Doughnut Chart -->
+                <canvas id="ppf-doughnut-chart" class="mt-4"></canvas>
+
+                <!-- Yearly Growth Table -->
+                <h4 class="text-center mb-4 ppfgr">PPF Growth Per Year</h4>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">Year</th>
+                            <th scope="col">Maturity Value (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ppf-growth-table">
+                        <!-- Yearly growth data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    function calculate() {
+        // Input values
+        const annualInvestment = parseFloat(document.getElementById("annual-investment").value);
+        const timePeriod = parseInt(document.getElementById("time-period").value);
+        const interestRate = parseFloat(document.getElementById("interest-rate").value) / 100;
+
+        // Calculate values
+        let maturityAmount = 0;
+        let totalInvestment = annualInvestment * timePeriod;
+        let yearlyData = [];
+        let growthDataHtml = '';
+
+        for (let year = 1; year <= timePeriod; year++) {
+            maturityAmount = (maturityAmount + annualInvestment) * (1 + interestRate);
+            yearlyData.push(maturityAmount.toFixed(2));
+
+            // Populate table with yearly data
+            growthDataHtml += `<tr><td>Year ${year}</td><td>₹${maturityAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</td></tr>`;
+        }
+
+        let totalInterest = maturityAmount - totalInvestment;
+
+        // Update results with commas
+        document.getElementById("investment-amount").textContent = `Total Investment: ₹${totalInvestment.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        document.getElementById("total-interest").textContent = `Total Interest: ₹${totalInterest.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        document.getElementById("maturity-value").textContent = `Maturity Value: ₹${maturityAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+
+        // Populate table with growth data
+        document.getElementById("ppf-growth-table").innerHTML = growthDataHtml;
+
+        // Generate Doughnut Chart
+        generateDoughnutChart(totalInvestment, totalInterest);
+    }
+
+    // Initial calculation
+    calculate();
+
+    document.getElementById("ppf-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        calculate();
+    });
+
+    // Doughnut Chart
+    function generateDoughnutChart(investment, interest) {
+        const ctx = document.getElementById("ppf-doughnut-chart").getContext("2d");
+
+        // Destroy existing chart if any
+        if (window.ppfDoughnutChart) window.ppfDoughnutChart.destroy();
+
+        // Create new chart
+        window.ppfDoughnutChart = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: ["Total Interest", "Total Investment"],
+                datasets: [
+                    {
+                        data: [interest, investment],
+                        backgroundColor: ["#558BFF", "#ADC7FF"], // Blue for Interest, Gray for Investment
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+            },
+        });
+    }
+    </script>
+</body>
+  </html
